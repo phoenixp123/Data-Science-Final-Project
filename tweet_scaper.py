@@ -40,13 +40,19 @@ def read_csv(filename):
 
 
 def eda_visualizations(dataframe):
-    dataframe = dataframe.sort_values(by = "hf_score", ascending = False)
+    dataframe = dataframe.sort_values(by = "hf_score",ascending = False)
 
-    fig = dataframe.plot.bar(x="region",y="hf_score",rot=45)
+    plt.figure(figsize = (20,6))
+    plt.bar(x = dataframe["region"],height = dataframe["hf_score"], label= "Average HFI Score")
+    # plt.plot(dataframe["region"],dataframe["hf_rank"], label = "HFI Rank")
 
-    return fig
+    plt.ylabel("Average HFI Score")
+    plt.xlabel("Region")
+
+    plt.legend()
+    plt.show()
 
 
 if __name__ == "__main__":
     df_byRegion = read_csv("hfi_cc_2019.csv")
-
+    eda_visualizations(df_byRegion)
