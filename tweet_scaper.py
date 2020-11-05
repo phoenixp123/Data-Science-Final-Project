@@ -8,6 +8,7 @@ from google.cloud.language import types
 from google.cloud.language import enums
 import requests
 from bs4 import BeautifulSoup
+from collections import Counter,defaultdict
 
 consumer_key = "u3rjsE7Xz0Fj0EgP57g7NlXks"
 consumer_secret = "qB8RrfFJ9mOusIdM4rTcStCjqKgDS8iAIWtNK4zCxtFSQOxCwY"
@@ -23,40 +24,27 @@ auth.set_access_token(access_token,access_token_secret)
 api = tweepy.API(auth,wait_on_rate_limit = True)
 
 
-# --------------------------------------------------------------------------------
+def read_csv(filename):
+    data = []
+    with open(filename,encoding = "utf-8") as csv_file:
+        csv_reader = csv.DictReader(csv_file)
+        for row in csv_reader:
+            data.append(row)
 
-class TextObject:
-    def __init__(self,url,language):  # initialize our TextObject
-        self.url = url
-        self.language = language  # support will be added later for this feature -> multilingual sentiment analysis
+    byCountry = defaultdict(list)
+    for d in data:
+        byCountry[d["countries"]].append(d)
 
-    def extractText(self):
-        r1 = requests.get(self.url)
-        coverpage = r1.content
+    # byCountry = sorted(byCountry, key = lambda c: c.lower())
 
-        text_data = BeautifulSoup(coverpage,'html.parser')
-
-        paragraph_text = [p.text for p in text_data.find_all('p')]
-        df = pd.DataFrame({"text": paragraph_text,"score": np.nan,"magnitude": np.nan})
-
-        return df
-
-    def findSentiment(self,df):
-        dfString = [d for d in df["text"]]
-        # iterate through each paragraph of text
-        for index,s in enumerate(dfString):
-            document = types.Document(
-                content = s,
-                type = enums.Document.Type.PLAIN_TEXT)
-
-            # Detects the sentiment of the text
-            sentiment = client.analyze_sentiment(document = document).document_sentiment
-            df["score"][index] = sentiment.score
-            df["magnitude"][index] = sentiment.magnitude
-        return df
+    return byCountry
 
 
-# --------------------------------------------------------------------------------
+def jprint(data):
+    print(json.dumps(data,indent = 4))
+
 
 if __name__ == "__main__":
-    print("bruh")
+    country_data = read_csv("hfi_cc_2019.csv")
+    jprint(country_data)
+
