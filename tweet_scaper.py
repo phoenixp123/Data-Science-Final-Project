@@ -9,6 +9,7 @@ from google.cloud.language import enums
 import requests
 from bs4 import BeautifulSoup
 from collections import Counter,defaultdict
+import matplotlib.pyplot as plt
 
 consumer_key = "u3rjsE7Xz0Fj0EgP57g7NlXks"
 consumer_secret = "qB8RrfFJ9mOusIdM4rTcStCjqKgDS8iAIWtNK4zCxtFSQOxCwY"
@@ -25,26 +26,27 @@ api = tweepy.API(auth,wait_on_rate_limit = True)
 
 
 def read_csv(filename):
-    data = []
-    with open(filename,encoding = "utf-8") as csv_file:
-        csv_reader = csv.DictReader(csv_file)
-        for row in csv_reader:
-            data.append(row)
+    df = pd.read_csv(filename,usecols = ["countries","region","hf_score","hf_rank","hf_quartile",
+                                         "pf_expression","pf_association_assembly","pf_movement"],na_values = ["-"])
 
-    byCountry = defaultdict(list)
-    for d in data:
-        byCountry[d["countries"]].append(d)
+    df.loc[:,"hf_score":"pf_movement"] = df.loc[:,"hf_score":"pf_movement"].astype(float)
 
-    # byCountry = sorted(byCountry, key = lambda c: c.lower())
+    aggregation_functions = {"region": "first","hf_score": "mean","hf_rank": "max","hf_quartile": "max",
+                             "pf_expression": "mean","pf_association_assembly": "mean","pf_movement": "mean"}
 
-    return byCountry
+    df = df.groupby(by = ["countries"]).aggregate(aggregation_functions)
+
+    return df
 
 
-def jprint(data):
-    print(json.dumps(data,indent = 4))
+def eda_visualizations(dataframe):
+    dataframe = dataframe.sort_values(by = "hf_score", ascending = False)
+
+    fig = dataframe.plot.bar(x="region",y="hf_score",rot=45)
+
+    return fig
 
 
 if __name__ == "__main__":
-    country_data = read_csv("hfi_cc_2019.csv")
-    jprint(country_data)
+    df_byRegion = read_csv("hfi_cc_2019.csv")
 
