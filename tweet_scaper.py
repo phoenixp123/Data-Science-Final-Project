@@ -26,6 +26,7 @@ api = tweepy.API(auth,wait_on_rate_limit = True)
 
 class TweetScraper():
     def __init__(self, ):
+        
 
 
 def read_csv(filename):
