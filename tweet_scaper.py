@@ -11,10 +11,10 @@ from bs4 import BeautifulSoup
 from collections import Counter,defaultdict
 import matplotlib.pyplot as plt
 
-consumer_key = "u3rjsE7Xz0Fj0EgP57g7NlXks"
-consumer_secret = "qB8RrfFJ9mOusIdM4rTcStCjqKgDS8iAIWtNK4zCxtFSQOxCwY"
-access_token = "1305689531421786112-v5mwJbrNRFYbbhS5Xf9N7e62oROcno"
-access_token_secret = "vXsMk129W5FhQzQThGtnVJgLbRx7Op3UwQLGy2h6iyner"
+consumer_key = "OROBANkVOsvva9HETWL4Kovbx"
+consumer_secret = "t87379Kk9ANccJDM5a6E6G5eLKDGLnL7s2zld1kXvUCYu9gjnJ"
+access_token = "1305689531421786112-FNe1D2tjmvFjzikZYHDyjvRVAVT9gk"
+access_token_secret = "G6KV4pfTg6l7BSXxbQZDyYbREmr2taNkYzBzSZZfDyBIa"
 
 # instantiate a client
 client = language.LanguageServiceClient.from_service_account_json \
@@ -23,6 +23,9 @@ client = language.LanguageServiceClient.from_service_account_json \
 auth = tweepy.OAuthHandler(consumer_key,consumer_secret)
 auth.set_access_token(access_token,access_token_secret)
 api = tweepy.API(auth,wait_on_rate_limit = True)
+
+class TweetScraper():
+    def __init__(self, ):
 
 
 def read_csv(filename):
@@ -34,9 +37,9 @@ def read_csv(filename):
     aggregation_functions = {"region": "first","hf_score": "mean","hf_rank": "max","hf_quartile": "max",
                              "pf_expression": "mean","pf_association_assembly": "mean","pf_movement": "mean"}
 
-    df = df.groupby(by = ["countries"]).aggregate(aggregation_functions)
+    df_aggregate = df.groupby(by = ["countries"]).aggregate(aggregation_functions)
 
-    return df
+    return df, df_aggregate
 
 
 def eda_visualizations(dataframe):
@@ -54,5 +57,6 @@ def eda_visualizations(dataframe):
 
 
 if __name__ == "__main__":
-    df_byRegion = read_csv("hfi_cc_2019.csv")
-    eda_visualizations(df_byRegion)
+    df, df_aggregate = read_csv("hfi_cc_2019.csv")
+    print(df_aggregate)
+    eda_visualizations(df_aggregate)
