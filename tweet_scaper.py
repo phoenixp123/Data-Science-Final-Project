@@ -1,6 +1,6 @@
 import tweepy
 import math
-
+import re
 import pandas as pd
 import numpy as np
 from google.cloud import language
@@ -30,6 +30,8 @@ api = tweepy.API(auth,wait_on_rate_limit = True)
 def get_coordinates(filename):
     lat_long = pd.read_csv(filename,usecols = ["latitude","longitude","country"])
     lat_long["country"] = lat_long["country"].astype(str).apply(lambda s: s.strip())
+    lat_long["latitude"] = lat_long["latitude"].astype(str).apply(lambda s: s.strip())
+    lat_long["longitude"] = lat_long["longitude"].astype(str).apply(lambda s: s.strip())
     lat_long = lat_long[["country","latitude","longitude"]]
     lat_long = lat_long.sort_values(by = "country")
 
@@ -45,25 +47,37 @@ def get_coordinates(filename):
 
 
 def read_csv_hfi(filename):
-    df = pd.read_csv(filename,usecols = ["countries","region","hf_score","hf_rank","hf_quartile",
+    df_byCountry = pd.read_csv(filename,usecols = ["countries","region","hf_score","hf_rank","hf_quartile",
                                          "pf_expression","pf_association_assembly","pf_movement"],na_values = ["-"])
 
-    df.loc[:,"hf_score":"pf_movement"] = df.loc[:,"hf_score":"pf_movement"].astype(float)
+    df_byCountry.loc[:,"hf_score":"pf_movement"] = df_byCountry.loc[:,"hf_score":"pf_movement"].astype(float)
 
     aggregation_functions = {"region": "first","hf_score": "mean","hf_rank": "max","hf_quartile": "max",
                              "pf_expression": "mean","pf_association_assembly": "mean","pf_movement": "mean"}
 
-    df_aggregate = df.groupby(by = ["countries"]).aggregate(aggregation_functions)
+    df_byRegion = df_byCountry.groupby(by = ["countries"]).aggregate(aggregation_functions)
 
-    return df,df_aggregate
+    return df_byCountry,df_byRegion
 
 
 # Twitter Interaction and Feature Extraction
 # ---------------------------------------------------------------------------------------------------------------------
 
-# get_tweet(max = 100, location = api.geosearch(df["lat].....df["area"])
-# return tweets
+# create get_tweets -> takes coordinates, a datetime range to search, result type, maximum number of tweets to scrape
+def get_tweets(coordinates, result_type, until_date, count, max_tweets):
+    tweets = tweepy.Cursor(api.search,geocode = coordinates,result_type = result_type,
+                           until = until_date,count = count).items(max_tweets)
 
+    tweets_list = [
+        [re.sub(r"(?:\@|https?\://)\S+", "", tweet.text),tweet.created_at,tweet.favorite_count,
+         tweet.user.location,tweet.user.followers_count,tweet.user.friends_count,
+         tweet.lang] for tweet in tweets]
+
+    tweets_df = pd.DataFrame(data = tweets_list,)
+    return tweets_list,tweets_df
+
+# go through the dataframe for the coordinates by country, and retrieve the tweets from each country (~25)
+# save results into dataframe with following characteristics -> country, text
 
 # Visualizations
 # ---------------------------------------------------------------------------------------------------------------------
@@ -83,6 +97,20 @@ def visualizations(dataframe):
 # Machine Learning and Sentiment Analysis
 # ---------------------------------------------------------------------------------------------------------------------
 
+    def findSentiment(dataframe):
+        dfString = [d for d in dataframe["text"]]
+        # iterate through each paragraph of text
+        for index,s in enumerate(dfString):
+            document = types.Document(
+                content = s,
+                type = enums.Document.Type.PLAIN_TEXT)
+
+            # Detects the sentiment of the text
+            sentiment = client.analyze_sentiment(document = document).document_sentiment
+            df["score"][index] = sentiment.score
+            df["magnitude"][index] = sentiment.magnitude
+        return df
+
 # Final Report and Presentation
 # ---------------------------------------------------------------------------------------------------------------------
 
@@ -90,5 +118,10 @@ def visualizations(dataframe):
 if __name__ == "__main__":
     df,df_aggregates = read_csv_hfi("hfi_cc_2019.csv")
     df_coordinates = get_coordinates("lat_long_coordinates.csv")
-    # visualizations(df_aggregates)
-    print(df_coordinates)
+    coordinates = '19.402833,-99.141051,50mi'
+    result_type = 'recent'
+    until_date = '2020-11-10'
+    max_tweets = 150
+    count = 25
+    tweets,df_tweets = get_tweets(coordinates=coordinates,result_type=result_type,until_date=until_date,count=count,max_tweets=max_tweets)
+    print(df_tweets[0])
