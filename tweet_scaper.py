@@ -38,7 +38,7 @@ def get_coordinates(filename):
     radius = pd.read_csv("countries of the world.csv",usecols = ["Country","Area (sq. mi.)"])
     radius["Country"] = radius["Country"].astype(str).apply(lambda s: s.strip())
     radius["Area (sq. mi.)"] = radius["Area (sq. mi.)"].astype(float).apply(lambda x: math.sqrt(x))
-    radius.columns = ["country","area"]
+    radius.columns = ["country","radius"]
         
 
     coordinates = pd.merge(lat_long,radius,on = ["country"])
@@ -65,6 +65,11 @@ def read_csv_hfi(filename):
 
 # create get_tweets -> takes coordinates, a datetime range to search, result type, maximum number of tweets to scrape
 def get_tweets(coordinates, result_type, until_date, count, max_tweets):
+    """Takes in 5 parameters, set the max_tweets to 150, count to 25, and result type to 'recent'
+    until date as the current date, and the coordinates equal to the 'latitude' and 'longitude'
+    values. Returns dataframe with following columns -> text, created_at_date, favorite_count,
+    user location, followers count, friends count, and the language used.
+    Indexed 0 - 6"""
     tweets = tweepy.Cursor(api.search,geocode = coordinates,result_type = result_type,
                            until = until_date,count = count).items(max_tweets)
 
@@ -73,11 +78,27 @@ def get_tweets(coordinates, result_type, until_date, count, max_tweets):
          tweet.user.location,tweet.user.followers_count,tweet.user.friends_count,
          tweet.lang] for tweet in tweets]
 
-    tweets_df = pd.DataFrame(data = tweets_list,)
-    return tweets_list,tweets_df
+    tweets_df = pd.DataFrame(data = tweets_list)
+    # re-label columns as follows: text, created_at_date, favorite_count, user_location, followers_count,
+    # friends_count, language
 
-# go through the dataframe for the coordinates by country, and retrieve the tweets from each country (~25)
-# save results into dataframe with following characteristics -> country, text
+    return tweets_df
+
+def get_tweets_by_country():
+    """Takes in tweet_df, run the get_tweets to get all those tweets
+    Uses latitude, longitude, and radius, return a dataframe with each iteration
+    Save into list of dataframes, and merge the list into a single frame
+    byCountry -> country, all the columns of tweets_df"""
+    # return the dataframe with country, lat, and longitude, radius
+    by_country_coordinates = get_coordinates("lat_long_coordinates.csv")
+
+    df_by_country = pd.DataFrame(data = ["data"])
+    # for country(lat, long, and radius) in dataframe:
+    #     tweets = get_tweets((lat, long, and radius), result_type, until_date, count, max_tweets
+    #     df_by_country = df_by_country.merge(tweets, on = 'data', how = 'outer')
+    
+    # return df_by_country
+    return -1
 
 # Visualizations
 # ---------------------------------------------------------------------------------------------------------------------
@@ -97,19 +118,19 @@ def visualizations(dataframe):
 # Machine Learning and Sentiment Analysis
 # ---------------------------------------------------------------------------------------------------------------------
 
-    def findSentiment(dataframe):
-        dfString = [d for d in dataframe["text"]]
-        # iterate through each paragraph of text
-        for index,s in enumerate(dfString):
-            document = types.Document(
-                content = s,
-                type = enums.Document.Type.PLAIN_TEXT)
+def findSentiment(dataframe):
+    dfString = [d for d in dataframe["text"]]
+    # iterate through each paragraph of text
+    for index,s in enumerate(dfString):
+        document = types.Document(
+            content = s,
+            type = enums.Document.Type.PLAIN_TEXT)
 
-            # Detects the sentiment of the text
-            sentiment = client.analyze_sentiment(document = document).document_sentiment
-            df["score"][index] = sentiment.score
-            df["magnitude"][index] = sentiment.magnitude
-        return df
+        # Detects the sentiment of the text
+        sentiment = client.analyze_sentiment(document = document).document_sentiment
+        df["score"][index] = sentiment.score
+        df["magnitude"][index] = sentiment.magnitude
+    return df
 
 # Final Report and Presentation
 # ---------------------------------------------------------------------------------------------------------------------
@@ -121,7 +142,8 @@ if __name__ == "__main__":
     coordinates = '19.402833,-99.141051,50mi'
     result_type = 'recent'
     until_date = '2020-11-10'
-    max_tweets = 150
-    count = 25
-    tweets,df_tweets = get_tweets(coordinates=coordinates,result_type=result_type,until_date=until_date,count=count,max_tweets=max_tweets)
-    print(df_tweets[0])
+    max_tweets = 100
+    count = 20
+    df_tweets = get_tweets(coordinates=coordinates,result_type=result_type,until_date=until_date,count=count,max_tweets=max_tweets)
+    print(df_coordinates)
+
