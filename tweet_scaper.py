@@ -104,16 +104,37 @@ def get_tweets_by_country():
 # ---------------------------------------------------------------------------------------------------------------------
 
 def visualizations(dataframe):
-    dataframe = dataframe.sort_values(by = "hf_score",ascending = False)
-
-    plt.figure(figsize = (20,6))
-    plt.bar(x = dataframe["region"],height = dataframe["hf_score"],label = "Average HFI Score")
-
+        dataframe = dataframe.sort_values(by="hf_score", ascending=False)
+    plt.figure(figsize=(20, 6))
+    plt.bar(x=dataframe["region"], height=dataframe["hf_score"], label="Average HFI Score")
     plt.ylabel("Average HFI Score")
     plt.xlabel("Region")
-
     plt.legend()
     plt.show()
+
+    plt.figure()
+
+    bargraph1 = plt.bar(x=dataframe["region"], height=dataframe["hf_rank"], label=" HFI Rank for different regions")
+    bargraph1.shoe()
+    idx = np.where((dataframe['pf_expression'] >= 8))
+    df = dataframe.loc[idx]
+    bargraph1 = plt.bar(x=(df["region"]), height=df["hf_score"],
+                        label="HFI Score of countries with Freedom of speech ")
+    bargraph1.show()
+
+    idi = np.where((dataframe['pf_expression'] < 8))
+    df2 = dataframe.loc[idi]
+    bargraph2 = plt.bar(x=(df2["region"]), height=df2["hf_score"],
+                        label="HFI Score of countries without Freedom of speech ")
+    bargraph2.show()
+
+    yes_mean = np.mean(df['hf_rank'])
+    no_mean = np.mean(df2['hf_rank'])
+    data = pd.DataFrame({
+        "Country with Freedom of Speach": yes_mean,
+        "Country without Freedom of Speech": no_mean
+    })
+    data.plot.bar(rot=0)
 
 # Machine Learning and Sentiment Analysis
 # ---------------------------------------------------------------------------------------------------------------------
