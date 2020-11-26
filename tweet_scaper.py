@@ -1,26 +1,39 @@
-import tweepy
 import math
 import re
 import pandas as pd
 import numpy as np
+import time
+import tweepy
+from googleapiclient.discovery import build
 from google.cloud import language
 from google.cloud.language import types
 from google.cloud.language import enums
-# from collections import Counter,defaultdict
 import matplotlib.pyplot as plt
+from datetime import datetime
 
+# ---------------------------------------------------------------------------------------------------------------------
+
+date = datetime.today().strftime('%Y-%m-%d')
+
+# authorize tweepy
 consumer_key = "OROBANkVOsvva9HETWL4Kovbx"
 consumer_secret = "t87379Kk9ANccJDM5a6E6G5eLKDGLnL7s2zld1kXvUCYu9gjnJ"
 access_token = "1305689531421786112-FNe1D2tjmvFjzikZYHDyjvRVAVT9gk"
 access_token_secret = "G6KV4pfTg6l7BSXxbQZDyYbREmr2taNkYzBzSZZfDyBIa"
 
-# instantiate a client
-client = language.LanguageServiceClient.from_service_account_json \
-    ("/Users/phoenix/Downloads/My First Project-4361e522b85a.json")
-
 auth = tweepy.OAuthHandler(consumer_key,consumer_secret)
 auth.set_access_token(access_token,access_token_secret)
 api = tweepy.API(auth,wait_on_rate_limit = True)
+api = tweepy.API(auth,wait_on_rate_limit_notify = True)
+
+languages = ["ar","zh","nl","en","fr","de","id","it","ja","ko","pt","es","th","tr"]
+
+# instantiate a client
+# api_key = "AIzaSyByLtOhPnAUhnzRDvXmmg5tuMnELC0cHY8"
+# api_service_name = 'language'
+# api_version = 'v1'
+# service = build(api_service_name,api_version,developerKey = api_key)
+# client = service.language().client().list().execute()
 
 
 
@@ -64,7 +77,7 @@ def read_csv_hfi(filename):
 # ---------------------------------------------------------------------------------------------------------------------
 
 # create get_tweets -> takes coordinates, a datetime range to search, result type, maximum number of tweets to scrape
-def get_tweets(coordinates, result_type, until_date, count, max_tweets):
+def get_tweets(coordinates,result_type,until_date,count,max_tweets):
     """Takes in 5 parameters, set the max_tweets to 150, count to 25, and result type to 'recent'
     until date as the current date, and the coordinates equal to the 'latitude' and 'longitude'
     values. Returns dataframe with following columns -> text, created_at_date, favorite_count,
@@ -74,31 +87,41 @@ def get_tweets(coordinates, result_type, until_date, count, max_tweets):
                            until = until_date,count = count).items(max_tweets)
 
     tweets_list = [
-        [re.sub(r"(?:\@|https?\://)\S+", "", tweet.text),tweet.created_at,tweet.favorite_count,
-         tweet.user.location,tweet.user.followers_count,tweet.user.friends_count,
-         tweet.lang] for tweet in tweets]
+         [filter_regex(tweet.text),tweet.created_at,tweet.retweet_count,tweet.favorite_count,
+          tweet.user.location,tweet.user.followers_count,tweet.user.friends_count,
+          tweet.lang] for tweet in tweets]
 
-    tweets_df = pd.DataFrame(data = tweets_list)
-    # re-label columns as follows: text, created_at_date, favorite_count, user_location, followers_count,
-    # friends_count, language
+
+    tweets_df = pd.DataFrame(data = tweets_list,columns = ["text","created_at","retweet_count","favorite_count",
+                                                           "user_location","followers_count",
+                                                           "friends_count","language"])
 
     return tweets_df
 
-def get_tweets_by_country():
+def get_tweets_by_country(coordinates_df):
     """Takes in tweet_df, run the get_tweets to get all those tweets
     Uses latitude, longitude, and radius, return a dataframe with each iteration
     Save into list of dataframes, and merge the list into a single frame
     byCountry -> country, all the columns of tweets_df"""
     # return the dataframe with country, lat, and longitude, radius
-    by_country_coordinates = get_coordinates("lat_long_coordinates.csv")
+    result_type = 'recent'
+    max_tweets = 500
 
-    df_by_country = pd.DataFrame(data = ["data"])
-    # for country(lat, long, and radius) in dataframe:
-    #     tweets = get_tweets((lat, long, and radius), result_type, until_date, count, max_tweets
-    #     df_by_country = df_by_country.merge(tweets, on = 'data', how = 'outer')
+    tweets_by_country = pd.DataFrame()
+
+    print(f"retrieving tweets, 5000 tweets remaining")
+
+    # go through the dataframe for the coordinates by country, and retrieve the tweets from each country (~25)
+    # save results into dataframe with following characteristics -> country, text
+    for coordinate in coordinates_df.itertuples():
+        tweets = get_tweets(coordinate[2],result_type,date,150,max_tweets)
+        tweets["region"] = coordinate[1]
+        tweets_by_country = pd.concat([tweets_by_country,tweets])
+        print(f"retrieving tweets, {5000 - len(tweets_by_country)} tweets remaining")
     
-    # return df_by_country
-    return -1
+    print("All tweets extracted")
+    
+    return tweets_by_country
 
 # Visualizations
 # ---------------------------------------------------------------------------------------------------------------------
@@ -159,12 +182,12 @@ def findSentiment(dataframe):
 
 if __name__ == "__main__":
     df,df_aggregates = read_csv_hfi("hfi_cc_2019.csv")
+    df_by_country,df_by_region = read_csv_hfi("hfi_cc_2019.csv")
     df_coordinates = get_coordinates("lat_long_coordinates.csv")
-    coordinates = '19.402833,-99.141051,50mi'
-    result_type = 'recent'
-    until_date = '2020-11-10'
-    max_tweets = 100
-    count = 20
-    df_tweets = get_tweets(coordinates=coordinates,result_type=result_type,until_date=until_date,count=count,max_tweets=max_tweets)
-    print(df_coordinates)
 
+    df_regional_coord = pd.read_csv("regional_coordinates .csv")
+    print(df_regional_coord)
+
+
+    # tweets = get_tweets_by_country(df_regional_coord)
+    # print(tweets)
