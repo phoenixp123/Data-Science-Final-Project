@@ -1,14 +1,14 @@
 import math
 import re
 import pandas as pd
-import numpy as np
-import time
 import tweepy
-from googleapiclient.discovery import build
+import emoji
+import numpy as np
+# from googleapiclient.discovery import build
 from google.cloud import language
 from google.cloud.language import types
 from google.cloud.language import enums
-import matplotlib.pyplot as plt
+# import matplotlib.pyplot as plt
 from datetime import datetime
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -29,6 +29,9 @@ api = tweepy.API(auth,wait_on_rate_limit_notify = True)
 languages = ["ar","zh","nl","en","fr","de","id","it","ja","ko","pt","es","th","tr"]
 
 # instantiate a client
+client = language.LanguageServiceClient.from_service_account_json \
+    ("/Users/phoenix/Documents/1stSemesterSO/DSCI125/Projects/Data-Science-Final-Project/DSCI_Auth.json")
+
 # api_key = "AIzaSyByLtOhPnAUhnzRDvXmmg5tuMnELC0cHY8"
 # api_service_name = 'language'
 # api_version = 'v1'
@@ -162,32 +165,62 @@ def visualizations(dataframe):
 # Machine Learning and Sentiment Analysis
 # ---------------------------------------------------------------------------------------------------------------------
 
-def findSentiment(dataframe):
-    dfString = [d for d in dataframe["text"]]
-    # iterate through each paragraph of text
-    for index,s in enumerate(dfString):
-        document = types.Document(
-            content = s,
-            type = enums.Document.Type.PLAIN_TEXT)
+def find_sentiment_score(tweets_text):  # ,tweets_lang):
 
-        # Detects the sentiment of the text
-        sentiment = client.analyze_sentiment(document = document).document_sentiment
-        df["score"][index] = sentiment.score
-        df["magnitude"][index] = sentiment.magnitude
-    return df
+    tweets = pd.DataFrame(columns = ["score","magnitude"])
+
+    document = types.Document(
+        content = tweets_text,
+        # language = tweets_lang,
+        type = enums.Document.Type.PLAIN_TEXT)
+
+    # Detects the sentiment of the text
+    sentiment = client.analyze_sentiment(document = document,encoding_type = "UTF8").document_sentiment
+
+    score = sentiment.score
+
+    return score
+
+
+def find_sentiment_magnitude(tweets_text):  # ,tweets_lang):
+
+    tweets = pd.DataFrame(columns = ["score","magnitude"])
+
+    document = types.Document(
+        content = tweets_text,
+        # language = tweets_lang,
+        type = enums.Document.Type.PLAIN_TEXT)
+
+    # Detects the sentiment of the text
+    sentiment = client.analyze_sentiment(document = document,encoding_type = "UTF8").document_sentiment
+
+    magnitude = sentiment.magnitude
+
+    return magnitude
+
+def sentiment_main():
+    df,df_aggregates = read_csv_hfi("hfi_cc_2019.csv")
+    df_by_country,df_by_region = read_csv_hfi("hfi_cc_2019.csv")
+    df_coordinates = get_coordinates("lat_long_coordinates.csv")
+
+    df_regional_coord = pd.read_csv("regional_coordinates .csv")
+
+    df_tweets = get_tweets_by_country(df_regional_coord)
+
+    df_sentiment = df_tweets
+
+    df_sentiment["score"] = df_sentiment.text.apply(find_sentiment_score)
+    df_sentiment["magnitude"] = df_sentiment.text.apply(find_sentiment_magnitude)
+
+    return df_sentiment
+
 
 # Final Report and Presentation
 # ---------------------------------------------------------------------------------------------------------------------
 
 
 if __name__ == "__main__":
-    df,df_aggregates = read_csv_hfi("hfi_cc_2019.csv")
-    df_by_country,df_by_region = read_csv_hfi("hfi_cc_2019.csv")
-    df_coordinates = get_coordinates("lat_long_coordinates.csv")
-
-    df_regional_coord = pd.read_csv("regional_coordinates .csv")
-    print(df_regional_coord)
-
+    sentiment_main()
 
     # tweets = get_tweets_by_country(df_regional_coord)
     # print(tweets)
