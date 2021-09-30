@@ -1,1 +1,2 @@
-# Data-Science-Final-Project
+# Overview
+This project is a research project completed for Clark University's Introduction to Data Science course. It is an analysis of the impact free speech policies around the world on public discourse on Twitter. We used Google Cloud's Cloud Natural Language API to perform sentiment analysis on text scraped from Twitter using their API. The full research report can be read [here](https://docs.google.com/document/d/1i0WLoNBqCO35wqw9gbtXoWnGZUG9Cu8tcngGt99nV8M/edit?usp=sharing).
